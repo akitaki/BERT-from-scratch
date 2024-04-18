@@ -217,7 +217,47 @@ class PositionalEmbedding(torch.nn.module):
     def forward(self, x):
         return self.pe
 
-#  
+# In addition to the positional embedding, BERT also has  segment embedding.
+# Final embedding is the sum of the original token embedding, positional embedding and segment embedding.
+class BERTEmbedding(torch.nn.Module):
+    # BERT Embedding:
+    # TokenEmbedding : normal embedding matrix
+    # PositionalEmbedding : adding positional information using sin, cos
+    # SegmentEmbedding : adding sentence segment info, (sent_A:1, sent_B:2)
+
+    def __init__(self, vocab_size, embed_size, seq_len=64, dropout=0.1):
+        # vocab_size: total vocab size
+        # embed_size: embedding size of token embedding
+        # dropout: dropout rate
+        
+
+        super().__init__()
+        self.embed_size = embed_size
+        # (m, seq_len) --> (m, seq_len, embed_size)
+        # padding_idx is not updated during training, remains as fixed pad (0)
+        self.token = torch.nn.Embedding(vocab_size, embed_size, padding_idx=0)
+        self.segment = torch.nn.Embedding(3, embed_size, padding_idx=0)
+        self.position = PositionalEmbedding(d_model=embed_size, max_len=seq_len)
+        self.dropout = torch.nn.Dropout(p=dropout)
+       
+    def forward(self, sequence, segment_label):
+        x = self.token(sequence) + self.position(sequence) + self.segment(segment_label)
+        return self.dropout(x)
+
+### STEP 3: MULTIHEADED SELF ATTENTION ###
+class MultiHeadedAttention(torch.nn.Module):
+    
+    def __init__(self, heads, d_model, dropout=0.1):
+        super(MultiHeadedAttention, self).__init__()
+        
+        self.d_k = d_model // heads
+        self.heads = heads
+        self.dropout = torch.nn.Dropout(dropout)
+
+        self.query = torch.nn.Linear(d_model, d_model)
+        self.key = torch.nn.Linear(d_model, d_model)
+        self.value = torch.nn.Linear(d_model, d_model)
+        self.output_linear = torch.nn.Linear(d_model, d_model)
 
 
 
